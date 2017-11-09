@@ -2,10 +2,10 @@ package csv
 
 import (
 	"log"
+	"os"
 	"testing"
 	"time"
-
-	// "mime/multipart"
+	"fmt"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,6 +22,7 @@ func TestDo(t *testing.T) {
 			Name      string    `csv:"1"`
 			Weight    float64   `csv:"4"`
 			BirthDay2 time.Time `csv:"5;2006-01-02"`
+			Test      float64
 		} `csv:"-"`
 	}
 
@@ -29,9 +30,22 @@ func TestDo(t *testing.T) {
 
 	a := A{}
 
-	err := New().Unmarshal(&a)
-	log.Println(a)
+	file, err := os.Open("test.csv")
+	if err != nil {
+		log.Println(err)
+	}
 
-	assert.Equal(t, nil, err, "should not dead lock")
+	err = New().Unmarshal(file, &a)
+	fmt.Printf("%+v\n", a)
+
+	assert.Equal(t, nil, err, "should not error")
+
+	file2, err := os.Open("test2.csv")
+	if err != nil {
+		log.Println(err)
+	}
+
+	b := B{}
+	err = New().Unmarshal(file2, &b)
 
 }

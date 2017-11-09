@@ -94,6 +94,9 @@ func (m Module) assigning(data []string, v reflect.Value) (err error) {
 		}
 
 		idx, _ := strconv.ParseInt(tags[0], 10, 32)
+		if idx >= int64(len(data)) || idx < 0 {
+			continue
+		}
 		format := time.RFC3339
 		if len(tags) > 1 {
 			format = tags[1]
