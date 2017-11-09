@@ -119,10 +119,10 @@ func assigned(v reflect.Value, data Data, types reflect.Type) {
 	switch types.String() {
 	case "string":
 		v.SetString(data.Value)
-	case "int":
+	case "int", "int64":
 		i, _ := strconv.ParseInt(data.Value, 10, 64)
 		v.SetInt(i)
-	case "float64":
+	case "float64", "float32":
 		i, _ := strconv.ParseFloat(data.Value, 64)
 		v.SetFloat(i)
 	case "time.Time":

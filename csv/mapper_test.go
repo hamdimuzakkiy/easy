@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 	"time"
-	"fmt"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,6 +17,7 @@ func TestDo(t *testing.T) {
 		Address  string    `csv:"1"`
 		BirthDay time.Time `csv:"2"`
 		Age      int       `csv:"3"`
+		Salary   int64     `csv:"3"`
 		Other    struct {
 			Name      string    `csv:"1"`
 			Weight    float64   `csv:"4"`
@@ -28,7 +28,7 @@ func TestDo(t *testing.T) {
 
 	type B []A
 
-	a := A{}
+	var a A
 
 	file, err := os.Open("test.csv")
 	if err != nil {
@@ -36,7 +36,6 @@ func TestDo(t *testing.T) {
 	}
 
 	err = New().Unmarshal(file, &a)
-	fmt.Printf("%+v\n", a)
 
 	assert.Equal(t, nil, err, "should not error")
 
