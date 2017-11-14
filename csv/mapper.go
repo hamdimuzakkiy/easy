@@ -6,20 +6,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"io"
 
 	_csv "encoding/csv"
-	"mime/multipart"
 
 	"github.com/hamdimuzakkiy/easy/safe"
 )
 
-type Module struct{}
-
-func New() Module {
-	return Module{}
-}
-
-func (m Module) Unmarshal(file multipart.File, dest interface{}) (res error) {
+func Unmarshal(file io.Reader, dest interface{}) (res error) {
+	// defer (*file).Close()
 	res = safe.Block{
 		Try: func() (err error) {
 			rows, err := _csv.NewReader(file).ReadAll()
@@ -28,7 +23,7 @@ func (m Module) Unmarshal(file multipart.File, dest interface{}) (res error) {
 			}
 
 			for _, row := range rows {
-				m.chooser(row, dest)
+				chooser(row, dest)
 			}
 
 			return res
@@ -39,22 +34,22 @@ func (m Module) Unmarshal(file multipart.File, dest interface{}) (res error) {
 	return res
 }
 
-func (m Module) chooser(data []string, dest interface{}) (res error) {
+func chooser(data []string, dest interface{}) (res error) {
 	value := reflect.Indirect(reflect.ValueOf(dest))
 	if value.Kind() == reflect.Slice {
-		return m.assignedSlice(data, value)
+		return assignedSlice(data, value)
 	} else if value.Kind() == reflect.Struct {
-		return m.assignedStruct(data, value)
+		return assignedStruct(data, value)
 	}
 
 	return errors.New("parameter should be struct or slice")
 }
 
-func (m Module) assignedSlice(data []string, value reflect.Value) (err error) {
+func assignedSlice(data []string, value reflect.Value) (err error) {
 	_t := reflect.Indirect(value)
 
 	newVal := reflect.Indirect(reflect.New(value.Type().Elem()))
-	m.assigning(data, newVal)
+	assigning(data, newVal)
 	_t = reflect.Append(_t, newVal)
 	if reflect.Indirect(value).CanSet() {
 		reflect.Indirect(value).Set(_t)
@@ -63,16 +58,17 @@ func (m Module) assignedSlice(data []string, value reflect.Value) (err error) {
 	return err
 }
 
-func (m Module) assignedStruct(data []string, v reflect.Value) (err error) {
+func assignedStruct(data []string, v reflect.Value) (err error) {
 	uu := reflect.Indirect(reflect.New(v.Type()))
-	m.assigning(data, uu)
+	assigning(data, uu)
 	reflect.Indirect(v).Set(uu)
 	return nil
 }
 
-func (m Module) assigning(data []string, v reflect.Value) (err error) {
+func assigning(data []string, v reflect.Value) (err error) {
 	typeOf := v.Type()
 	fields := typeOf.NumField()
+
 	for i := 0; i < fields; i++ {
 		fieldType := typeOf.Field(i)
 
@@ -86,9 +82,9 @@ func (m Module) assigning(data []string, v reflect.Value) (err error) {
 		if tag == "-" {
 			switch v.Field(i).Type().Kind() {
 			case reflect.Struct:
-				m.assignedStruct(data, v.Field(i))
+				assignedStruct(data, v.Field(i))
 			case reflect.Slice:
-				m.assignedStruct(data, v.Field(i))
+				assignedStruct(data, v.Field(i))
 			}
 			continue
 		}
@@ -107,6 +103,11 @@ func (m Module) assigning(data []string, v reflect.Value) (err error) {
 			Format: format,
 		}, fieldType.Type)
 	}
+
+	if _, ok := reflect.PtrTo(typeOf).MethodByName("Format"); ok {
+		v.Addr().MethodByName("Format").Call([]reflect.Value{})
+	}
+
 	return nil
 }
 
@@ -119,10 +120,10 @@ func assigned(v reflect.Value, data Data, types reflect.Type) {
 	switch types.String() {
 	case "string":
 		v.SetString(data.Value)
-	case "int":
+	case "int", "int64":
 		i, _ := strconv.ParseInt(data.Value, 10, 64)
 		v.SetInt(i)
-	case "float64":
+	case "float64", "float32":
 		i, _ := strconv.ParseFloat(data.Value, 64)
 		v.SetFloat(i)
 	case "time.Time":
