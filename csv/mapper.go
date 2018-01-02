@@ -2,18 +2,18 @@ package csv
 
 import (
 	"errors"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
-	"io"
 
 	_csv "encoding/csv"
 
 	"github.com/hamdimuzakkiy/easy/safe"
 )
 
-func Unmarshal(file io.Reader, dest interface{}) (res error) {
+func Unmarshal(file io.Reader, dest interface{}, skip int) (res error) {
 	// defer (*file).Close()
 	res = safe.Block{
 		Try: func() (err error) {
@@ -22,7 +22,12 @@ func Unmarshal(file io.Reader, dest interface{}) (res error) {
 				return err
 			}
 
-			for _, row := range rows {
+			skip = skip - 1
+
+			for i, row := range rows {
+				if i <= skip {
+					continue
+				}
 				chooser(row, dest)
 			}
 
