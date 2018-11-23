@@ -2,18 +2,18 @@ package csv
 
 import (
 	"errors"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
-	"io"
 
 	_csv "encoding/csv"
 
 	"github.com/hamdimuzakkiy/easy/safe"
 )
 
-func Unmarshal(file io.Reader, dest interface{}) (res error) {
+func Unmarshal(file io.Reader, dest interface{}, delimeter string) (res error) {
 	// defer (*file).Close()
 	res = safe.Block{
 		Try: func() (err error) {
@@ -23,7 +23,7 @@ func Unmarshal(file io.Reader, dest interface{}) (res error) {
 			}
 
 			for _, row := range rows {
-				chooser(row, dest)
+				chooser(row, dest, delimeter)
 			}
 
 			return res
@@ -34,22 +34,22 @@ func Unmarshal(file io.Reader, dest interface{}) (res error) {
 	return res
 }
 
-func chooser(data []string, dest interface{}) (res error) {
+func chooser(data []string, dest interface{}, delimeter string) (res error) {
 	value := reflect.Indirect(reflect.ValueOf(dest))
 	if value.Kind() == reflect.Slice {
-		return assignedSlice(data, value)
+		return assignedSlice(data, value, delimeter)
 	} else if value.Kind() == reflect.Struct {
-		return assignedStruct(data, value)
+		return assignedStruct(data, value, delimeter)
 	}
 
 	return errors.New("parameter should be struct or slice")
 }
 
-func assignedSlice(data []string, value reflect.Value) (err error) {
+func assignedSlice(data []string, value reflect.Value, delimeter string) (err error) {
 	_t := reflect.Indirect(value)
 
 	newVal := reflect.Indirect(reflect.New(value.Type().Elem()))
-	assigning(data, newVal)
+	assigning(data, newVal, delimeter)
 	_t = reflect.Append(_t, newVal)
 	if reflect.Indirect(value).CanSet() {
 		reflect.Indirect(value).Set(_t)
@@ -58,14 +58,14 @@ func assignedSlice(data []string, value reflect.Value) (err error) {
 	return err
 }
 
-func assignedStruct(data []string, v reflect.Value) (err error) {
+func assignedStruct(data []string, v reflect.Value, delimeter string) (err error) {
 	uu := reflect.Indirect(reflect.New(v.Type()))
-	assigning(data, uu)
+	assigning(data, uu, delimeter)
 	reflect.Indirect(v).Set(uu)
 	return nil
 }
 
-func assigning(data []string, v reflect.Value) (err error) {
+func assigning(data []string, v reflect.Value, delimeter string) (err error) {
 	typeOf := v.Type()
 	fields := typeOf.NumField()
 
@@ -73,7 +73,7 @@ func assigning(data []string, v reflect.Value) (err error) {
 		fieldType := typeOf.Field(i)
 
 		tag := fieldType.Tag.Get("csv")
-		tags := strings.Split(tag, ";")
+		tags := strings.Split(tag, delimeter)
 
 		if tag == "" {
 			continue
@@ -82,9 +82,9 @@ func assigning(data []string, v reflect.Value) (err error) {
 		if tag == "-" {
 			switch v.Field(i).Type().Kind() {
 			case reflect.Struct:
-				assignedStruct(data, v.Field(i))
+				assignedStruct(data, v.Field(i), delimeter)
 			case reflect.Slice:
-				assignedStruct(data, v.Field(i))
+				assignedStruct(data, v.Field(i), delimeter)
 			}
 			continue
 		}

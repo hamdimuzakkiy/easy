@@ -39,7 +39,7 @@ func TestDo(t *testing.T) {
 		log.Println(err)
 	}
 
-	err = Unmarshal(file, &a)
+	err = Unmarshal(file, &a, ",")
 	log.Println(a)
 
 	assert.Equal(t, nil, err, "should not error")
@@ -50,6 +50,6 @@ func TestDo(t *testing.T) {
 	}
 
 	b := B{}
-	err = Unmarshal(file2, &b)
+	err = Unmarshal(file2, &b, ",")
 
 }
